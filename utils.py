@@ -1,3 +1,4 @@
+"""Assorted utility functions for the project."""
 import tensorflow as tf
 from subprocess import call, DEVNULL
 
@@ -18,9 +19,11 @@ def combine_videos(filenames, output_filename, fps, loop=False):
     filter_complex = "".join(f"[{i}:v] " for i in range(len(filenames)))
     filter_complex += f"concat=n={len(filenames)}:v=1 [v]"
     if loop:
-        command = f"ffmpeg {input_files} -filter_complex \"{filter_complex}\" -map [v] -r {fps} -loop 0 {output_filename + '.gif'}"
+        command = f"ffmpeg {input_files} -filter_complex \"{filter_complex}\" -map [v] " \
+                  f"-r {fps} -loop 0 {output_filename + '.gif'}"
     else:
-        command = f"ffmpeg {input_files} -filter_complex \"{filter_complex}\" -map [v] {output_filename + '.mp4'}"
+        command = f"ffmpeg {input_files} -filter_complex \"{filter_complex}\" -map [v] " \
+                  f"{output_filename + '.mp4'}"
     call(command, shell=True, stdout=DEVNULL, stderr=DEVNULL)
 
 
@@ -62,10 +65,9 @@ def dense_image_warp(image, flow, name=None):
 def interpolate_bilinear(grid, query_points):
     """
     The interpolate_bilinear function takes a grid of values and interpolates
-        new values from it.  The grid is defined by the shape of the first two
-        dimensions, and the third dimension defines channels at each point in that
-        grid.  For example, if you have a 256x256 image with R, G, B channels then
-        you would call interpolate_bilinear like this:
+    new values from it.  The grid is defined by the shape of the first two
+    dimensions, and the third dimension defines channels at each point in that
+    grid.
 
     :param grid: Define the grid of values to be interpolated
     :param query_points: Specify the points in the grid that we want to sample

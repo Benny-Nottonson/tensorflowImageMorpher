@@ -1,3 +1,4 @@
+"""Main script for the warp model."""
 import cv2
 import numpy as np
 import tensorflow as tf
@@ -22,7 +23,6 @@ def warp(origins, targets, preds_org, preds_trg):
     """
     The warp function takes in the original images, and the predicted offsets for each image.
     It then applies these offsets to create a warped version of each image.
-    The warp function is used to generate training data for our model.
 
     :param origins: Pass the original image to the warp function
     :param targets: Define the target image
@@ -65,11 +65,8 @@ def create_grid(scale):
 
 def produce_warp_maps(origins, targets):
     """
-    The produce_warp_maps function is the main function of this script. It takes two images,
-    origins and targets, as input and produces a set of warp maps that can be used to transform
-    the origins image into the targets image. The produce_warp_maps function uses a custom model
-    (MyModel) to train on these two images for TRAIN_EPOCHS epochs (default: 10000). After each
-    epoch, it saves an intermediate result in the train/ directory.
+    The produce_warp_maps function takes two images, origins and targets, as input
+    and produces a set of warp maps that can be used to transform the origins image to the target.
 
     :param origins: Store the original images
     :param targets: Warp the original image to the target image
@@ -85,10 +82,7 @@ def produce_warp_maps(origins, targets):
     @tf.function
     def train_step(training_maps, training_origins, training_targets):
         """    
-        The train_step function is called inside the train_loop function.
-        It takes in a batch of training data, and uses that batch to perform one step of model training.
-        In this case, using tf.GradientTape() allows us to calculate the gradients used to optimize our model's variables (tf.trainable_variables). 
-        These optimized variables are then applied back to the model with an optimizer (in this case Adam). 
+        The train_step function takes in training data, and performs one step of model training.
         The loss function is also calculated and stored in a history object for later visualization.
         
         :param training_maps: Train the model
@@ -154,9 +148,8 @@ def produce_warp_maps(origins, targets):
 
 def use_warp_maps(origins, targets):
     """
-    The use_warp_maps function takes in the original and target images, as well as the frames per second
-    and number of steps to be used for morphing. It then loads in the predicted warp maps from a .npy file,
-    and uses them to morph between two faces. The function outputs a video of this morphing process.
+    The use_warp_maps function takes in the original and target images,
+    loads in the predicted warp maps, then outputs a video of this morphing process.
 
     :param origins: Get the original image
     :param targets: Store the target image
@@ -198,7 +191,8 @@ def use_warp_maps(origins, targets):
 
         output_img = ((res_numpy[0] + 1) * 127.5).astype(np.uint8)
         output_img = cv2.cvtColor(output_img, cv2.COLOR_RGB2BGR)
-        output_img = cv2.resize(output_img, (ORIG_WIDTH, ORIG_HEIGHT), interpolation=cv2.INTER_AREA)
+        output_img = cv2.resize(output_img, (ORIG_WIDTH, ORIG_HEIGHT),
+                                interpolation=cv2.INTER_AREA)
 
         video.write(output_img)
 
@@ -208,30 +202,28 @@ def use_warp_maps(origins, targets):
 
 def match_size(image_one, image_two):
     """
-    The matchSize function takes two images as input and returns the same two images, but with one of them resized to match
-    the size of the other. The function first checks if image_one is larger than image_two in terms of width. If it is, then
-    image_one will be resized to match the dimensions (width and height) of image_two using cv2's resize function with an
-    interpolation method set to INTER_AREA. Otherwise, if image one is not larger than image two in terms of width, then
-    image two will be resized instead.
+    The matchSize function takes two images as input and returns the same two images,
+    but with one of them resized to match the size of the other.
 
     :param image_one: Pass in the first image
     :param image_two: Resize the image_one parameter to match its size
     :return: The two images that have been resized to the same size
     """
     if image_one.shape[1] > image_two.shape[1]:
-        image_one = cv2.resize(image_one, (image_two.shape[1], image_two.shape[0]), interpolation=cv2.INTER_AREA)
+        image_one = cv2.resize(image_one, (image_two.shape[1], image_two.shape[0]),
+                               interpolation=cv2.INTER_AREA)
     else:
-        image_two = cv2.resize(image_two, (image_one.shape[1], image_one.shape[0]), interpolation=cv2.INTER_AREA)
+        image_two = cv2.resize(image_two, (image_one.shape[1], image_one.shape[0]),
+                               interpolation=cv2.INTER_AREA)
     return image_one, image_two
 
 
 def driver(source, target):
     """
-    The driver function takes in the source and target images, as well as the fps and steps.
+    The driver function takes in the source and target images
     It then resizes both images to a square of size im_sz x im_sz, converts them to RGB from BGR,
-    and normalizes them by dividing each pixel value by 127.5 and subtracting 1. It then reshapes
-    the image arrays into 4D tensors with shape (batch_size=None, height=im_sz, width=im_sz).
-    The driver function calls produce warp maps on these two tensors which produces a set of warp maps for each image pair
+    It then reshapes the image arrays into 4D tensors, produce warp maps on these two tensors,
+    which produces a set of warp maps for each image pair
 
     :param source: Specify the source image
     :param target: Specify the target image
@@ -258,12 +250,7 @@ def driver(source, target):
 
 def main():
     """
-    The main function is the driver function for this program. It first checks if there are any existing output folders
-    and deletes them if they exist. Then it creates a new output folder and morph folder to store the intermediate files
-    in. Next, it gets a list of all images in the input directory and sorts them alphabetically so that they can be morphed
-    in order from start to finish (or vice versa). The main loop then iterates through each image pair in order, calling
-    the driver function on each pair with specified fps and steps values as well as storing their filenames into an array
-    for later use when combining
+    The driver function for this program.
 
     :return: The output file name
     """

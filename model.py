@@ -1,3 +1,4 @@
+"""Tensorflow model for the warp operation"""
 import tensorflow as tf
 
 mp_sz = 96
@@ -6,10 +7,7 @@ mp_sz = 96
 class MyModel(tf.keras.Model):
     def __init__(self):
         """
-        The __init__ function is called when the object is created.
-        It sets up the layers of our model, and defines how they are connected to each other.
-        The first two layers are convolutional layers with 64 filters of size 5x5, followed by a LeakyReLU activation function.
-        The third layer is also a convolutional layer with 64 filters of size 5x5, followed by another LeakyReLU activation function.
+        The __init__ function sets up the layers of our model.
 
         :param self: Represent the instance of the class
         :return: Nothing
@@ -23,8 +21,8 @@ class MyModel(tf.keras.Model):
 
     def call(self, inputs, training=None, mask=None):
         """
-        The call function is the main function of a layer. It takes as input a tensor or list of tensors and returns
-        a tensor or list of tensors. The call function can be overridden when writing custom layers.
+        The call function is the main function of a layer.
+        It takes as input a tensor or list of tensors and returns a tensor.
 
         :param self: Represent the instance of the class
         :param inputs: Pass the input data to the model
