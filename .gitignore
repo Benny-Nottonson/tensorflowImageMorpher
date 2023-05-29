@@ -186,3 +186,4 @@ fabric.properties
 /input
 /output
 /morph
+preds.npy
