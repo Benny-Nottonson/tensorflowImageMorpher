@@ -60,13 +60,13 @@ def create_grid(scale):
     return grid
 
 
-def produce_warp_maps(origins, targets, ORIG_WIDTH, ORIG_HEIGHT):
+def produce_warp_maps(origins, targets, original_width, original_height):
     """
     The produce_warp_maps function takes two images, origins and targets, as input
     and produces a set of warp maps that can be used to transform the origins image to the target.
 
-    :param ORIG_WIDTH: Original width of the image
-    :param ORIG_HEIGHT: Original height of the image
+    :param original_width: Original width of the image
+    :param original_height: Original height of the image
     :param origins: Store the original images
     :param targets: Warp the original image to the target image
     :return: The predicted maps
@@ -140,18 +140,18 @@ def produce_warp_maps(origins, targets, ORIG_WIDTH, ORIG_HEIGHT):
 
             for res, prefix in zip([res_targets, res_origins], ["a_to_b", "b_to_a"]):
                 res_img = ((res.numpy() + 1) * 127.5).astype(np.uint8)
-                res_img = cv2.resize(res_img, (ORIG_WIDTH, ORIG_HEIGHT),
+                res_img = cv2.resize(res_img, (original_width, original_height),
                                      interpolation=cv2.INTER_AREA)
                 cv2.imwrite(f"train/{prefix}_{epoch}.jpg", cv2.cvtColor(res_img, cv2.COLOR_RGB2BGR))
 
 
-def use_warp_maps(origins, targets, ORIG_WIDTH, ORIG_HEIGHT):
+def use_warp_maps(origins, targets, original_width, original_height):
     """
     The use_warp_maps function takes in the original and target images,
     loads in the predicted warp maps, then outputs a video of this morphing process.
 
-    :param ORIG_WIDTH: Original width of the image
-    :param ORIG_HEIGHT: Original height of the image
+    :param original_width: Original width of the image
+    :param original_height: Original height of the image
     :param origins: Get the original image
     :param targets: Store the target image
     :return: A video of the morph between two images
@@ -160,12 +160,18 @@ def use_warp_maps(origins, targets, ORIG_WIDTH, ORIG_HEIGHT):
 
     res_img = np.zeros((IMAGE_SIZE * 2, IMAGE_SIZE * 3, 3), dtype=np.uint8)
 
-    res_img[IMAGE_SIZE * 0: IMAGE_SIZE * 1, IMAGE_SIZE * 0: IMAGE_SIZE * 1] = preds[0, :, :, 0:3]
-    res_img[IMAGE_SIZE * 0: IMAGE_SIZE * 1, IMAGE_SIZE * 1: IMAGE_SIZE * 2] = preds[0, :, :, 3:6]
-    res_img[IMAGE_SIZE * 0: IMAGE_SIZE * 1, IMAGE_SIZE * 2: IMAGE_SIZE * 3, :2] = preds[0, :, :, 6:8]
-    res_img[IMAGE_SIZE * 1: IMAGE_SIZE * 2, IMAGE_SIZE * 0: IMAGE_SIZE * 1] = preds[0, :, :, 8:11]
-    res_img[IMAGE_SIZE * 1: IMAGE_SIZE * 2, IMAGE_SIZE * 1: IMAGE_SIZE * 2] = preds[0, :, :, 11:14]
-    res_img[IMAGE_SIZE * 1: IMAGE_SIZE * 2, IMAGE_SIZE * 2: IMAGE_SIZE * 3, :2] = preds[0, :, :, 14:16]
+    res_img[IMAGE_SIZE * 0: IMAGE_SIZE * 1, IMAGE_SIZE * 0: IMAGE_SIZE * 1] = \
+        preds[0, :, :, 0:3]
+    res_img[IMAGE_SIZE * 0: IMAGE_SIZE * 1, IMAGE_SIZE * 1: IMAGE_SIZE * 2] = \
+        preds[0, :, :, 3:6]
+    res_img[IMAGE_SIZE * 0: IMAGE_SIZE * 1, IMAGE_SIZE * 2: IMAGE_SIZE * 3, :2] = \
+        preds[0, :, :, 6:8]
+    res_img[IMAGE_SIZE * 1: IMAGE_SIZE * 2, IMAGE_SIZE * 0: IMAGE_SIZE * 1] = \
+        preds[0, :, :, 8:11]
+    res_img[IMAGE_SIZE * 1: IMAGE_SIZE * 2, IMAGE_SIZE * 1: IMAGE_SIZE * 2] = \
+        preds[0, :, :, 11:14]
+    res_img[IMAGE_SIZE * 1: IMAGE_SIZE * 2, IMAGE_SIZE * 2: IMAGE_SIZE * 3, :2] = \
+        preds[0, :, :, 14:16]
 
     res_img = np.clip(res_img, -1, 1)
     res_img = ((res_img + 1) * 127.5).astype(np.uint8)
@@ -175,7 +181,7 @@ def use_warp_maps(origins, targets, ORIG_WIDTH, ORIG_HEIGHT):
     trg_strength = tf.reverse(org_strength, axis=[0])
 
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-    video = cv2.VideoWriter(MORPH_DIRECTORY, fourcc, FPS, (ORIG_WIDTH, ORIG_HEIGHT))
+    video = cv2.VideoWriter(MORPH_DIRECTORY, fourcc, FPS, (original_width, original_height))
 
     for iterations in tqdm(range(STEPS)):
         preds_org = preds * org_strength[iterations]
@@ -191,7 +197,7 @@ def use_warp_maps(origins, targets, ORIG_WIDTH, ORIG_HEIGHT):
 
         output_img = ((res_numpy[0] + 1) * 127.5).astype(np.uint8)
         output_img = cv2.cvtColor(output_img, cv2.COLOR_RGB2BGR)
-        output_img = cv2.resize(output_img, (ORIG_WIDTH, ORIG_HEIGHT),
+        output_img = cv2.resize(output_img, (original_width, original_height),
                                 interpolation=cv2.INTER_AREA)
 
         video.write(output_img)
