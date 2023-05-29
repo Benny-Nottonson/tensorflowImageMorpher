@@ -1,6 +1,6 @@
 """Assorted utility functions for the project."""
-import tensorflow as tf
 from subprocess import call, DEVNULL
+import tensorflow as tf
 
 
 def combine_videos(filenames, output_filename, fps, loop=False):
@@ -27,17 +27,17 @@ def combine_videos(filenames, output_filename, fps, loop=False):
     call(command, shell=True, stdout=DEVNULL, stderr=DEVNULL)
 
 
-def _get_dim(x, idx):
+def _get_dim(x_dim, idx):
     """
     The _get_dim function is used to get the dimension of a tensor.
 
-    :param x: Define the input tensor
+    :param x_dim: Define the input tensor
     :param idx: Specify the index of the dimension to be returned
     :return: The size of a dimension in the input tensor
     """
-    if x.shape.ndims is None:
-        return tf.shape(x)[idx]
-    return x.shape[idx] or tf.shape(x)[idx]
+    if x_dim.shape.ndims is None:
+        return tf.shape(x_dim)[idx]
+    return x_dim.shape[idx] or tf.shape(x_dim)[idx]
 
 
 @tf.function

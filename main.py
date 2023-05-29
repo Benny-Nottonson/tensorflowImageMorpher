@@ -1,21 +1,18 @@
 """Main script for the warp model."""
+from shutil import rmtree, move
+from os import listdir, path, mkdir
 import cv2
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
-from shutil import move
-from os import listdir, path, mkdir
-from shutil import rmtree
 
 from model import MyModel
 from utils import dense_image_warp, combine_videos
 
-ORIG_WIDTH = 0
-ORIG_HEIGHT = 0
 TRAIN_EPOCHS = 500
 
-im_sz = 1024
-morph_dir = "morph/morph.mp4"
+IMAGE_SIZE = 1024
+MORPH_DIRECTORY = "morph/morph.mp4"
 
 
 @tf.function
@@ -30,16 +27,16 @@ def warp(origins, targets, preds_org, preds_trg):
     :param preds_trg: Warp the target image
     :return: The warped images
     """
-    scale_org = tf.maximum(0.1, 1.0 + preds_org[..., :3] * mult_scale)
-    scale_trg = tf.maximum(0.1, 1.0 + preds_trg[..., :3] * mult_scale)
+    scale_org = tf.maximum(0.1, 1.0 + preds_org[..., :3] * MULT_SCALE)
+    scale_trg = tf.maximum(0.1, 1.0 + preds_trg[..., :3] * MULT_SCALE)
 
-    offset_org = preds_org[..., 3:6] * 2.0 * add_scale
-    offset_trg = preds_trg[..., 3:6] * 2.0 * add_scale
+    offset_org = preds_org[..., 3:6] * 2.0 * ADD_SCALE
+    offset_trg = preds_trg[..., 3:6] * 2.0 * ADD_SCALE
 
-    warp_org = preds_org[..., 6:8] * im_sz * warp_scale
-    warp_trg = preds_trg[..., 6:8] * im_sz * warp_scale
+    warp_org = preds_org[..., 6:8] * IMAGE_SIZE * WARP_SCALE
+    warp_trg = preds_trg[..., 6:8] * IMAGE_SIZE * WARP_SCALE
 
-    if add_first:
+    if ADD_FIRST:
         res_targets = dense_image_warp((origins + offset_org) * scale_org, warp_org)
         res_origins = dense_image_warp((targets + offset_trg) * scale_trg, warp_trg)
     else:
@@ -63,11 +60,13 @@ def create_grid(scale):
     return grid
 
 
-def produce_warp_maps(origins, targets):
+def produce_warp_maps(origins, targets, ORIG_WIDTH, ORIG_HEIGHT):
     """
     The produce_warp_maps function takes two images, origins and targets, as input
     and produces a set of warp maps that can be used to transform the origins image to the target.
 
+    :param ORIG_WIDTH: Original width of the image
+    :param ORIG_HEIGHT: Original height of the image
     :param origins: Store the original images
     :param targets: Warp the original image to the target image
     :return: The predicted maps
@@ -92,12 +91,12 @@ def produce_warp_maps(origins, targets):
         """
         with tf.GradientTape() as tape:
             map_pred = model(training_maps)
-            map_pred = tf.image.resize(map_pred, [im_sz, im_sz])
+            map_pred = tf.image.resize(map_pred, [IMAGE_SIZE, IMAGE_SIZE])
             res_targets_, res_origins_ = warp(
                 training_origins, training_targets, map_pred[..., :8], map_pred[..., 8:]
             )
 
-            flow_scale = im_sz * warp_scale
+            flow_scale = IMAGE_SIZE * WARP_SCALE
             res_map = dense_image_warp(training_maps, map_pred[:, :, :, 6:8] * flow_scale)
             res_map = dense_image_warp(res_map, map_pred[:, :, :, 14:16] * flow_scale)
 
@@ -112,26 +111,26 @@ def produce_warp_maps(origins, targets):
 
         train_loss(loss)
 
-    maps = create_grid(im_sz)
+    maps = create_grid(IMAGE_SIZE)
     maps = np.concatenate((maps, origins * 0.1, targets * 0.1), axis=-1).astype(np.float32)
 
     epoch = 0
     template = "Epoch {}, Loss: {}"
 
-    t = tqdm(range(TRAIN_EPOCHS), desc=template.format(epoch, train_loss.result()))
+    training = tqdm(range(TRAIN_EPOCHS), desc=template.format(epoch, train_loss.result()))
 
-    for iteration in t:
+    for iteration in training:
         epoch = iteration + 1
 
-        t.set_description(template.format(epoch, train_loss.result()))
-        t.refresh()
+        training.set_description(template.format(epoch, train_loss.result()))
+        training.refresh()
 
         train_step(maps, origins, targets)
 
         if (epoch < 100 and epoch % 10 == 0) or (epoch < 1000 and epoch % 100 == 0) or \
                 (epoch % 1000 == 0):
             preds = model(maps, training=False)[:1]
-            preds = tf.image.resize(preds, [im_sz, im_sz])
+            preds = tf.image.resize(preds, [IMAGE_SIZE, IMAGE_SIZE])
 
             res_targets, res_origins = warp(origins, targets, preds[..., :8], preds[..., 8:])
             np.save("preds.npy", preds.numpy())
@@ -146,26 +145,27 @@ def produce_warp_maps(origins, targets):
                 cv2.imwrite(f"train/{prefix}_{epoch}.jpg", cv2.cvtColor(res_img, cv2.COLOR_RGB2BGR))
 
 
-def use_warp_maps(origins, targets):
+def use_warp_maps(origins, targets, ORIG_WIDTH, ORIG_HEIGHT):
     """
     The use_warp_maps function takes in the original and target images,
     loads in the predicted warp maps, then outputs a video of this morphing process.
 
+    :param ORIG_WIDTH: Original width of the image
+    :param ORIG_HEIGHT: Original height of the image
     :param origins: Get the original image
     :param targets: Store the target image
     :return: A video of the morph between two images
     """
     preds = np.load("preds.npy")
-    STEPS = steps
 
-    res_img = np.zeros((im_sz * 2, im_sz * 3, 3), dtype=np.uint8)
+    res_img = np.zeros((IMAGE_SIZE * 2, IMAGE_SIZE * 3, 3), dtype=np.uint8)
 
-    res_img[im_sz * 0: im_sz * 1, im_sz * 0: im_sz * 1] = preds[0, :, :, 0:3]
-    res_img[im_sz * 0: im_sz * 1, im_sz * 1: im_sz * 2] = preds[0, :, :, 3:6]
-    res_img[im_sz * 0: im_sz * 1, im_sz * 2: im_sz * 3, :2] = preds[0, :, :, 6:8]
-    res_img[im_sz * 1: im_sz * 2, im_sz * 0: im_sz * 1] = preds[0, :, :, 8:11]
-    res_img[im_sz * 1: im_sz * 2, im_sz * 1: im_sz * 2] = preds[0, :, :, 11:14]
-    res_img[im_sz * 1: im_sz * 2, im_sz * 2: im_sz * 3, :2] = preds[0, :, :, 14:16]
+    res_img[IMAGE_SIZE * 0: IMAGE_SIZE * 1, IMAGE_SIZE * 0: IMAGE_SIZE * 1] = preds[0, :, :, 0:3]
+    res_img[IMAGE_SIZE * 0: IMAGE_SIZE * 1, IMAGE_SIZE * 1: IMAGE_SIZE * 2] = preds[0, :, :, 3:6]
+    res_img[IMAGE_SIZE * 0: IMAGE_SIZE * 1, IMAGE_SIZE * 2: IMAGE_SIZE * 3, :2] = preds[0, :, :, 6:8]
+    res_img[IMAGE_SIZE * 1: IMAGE_SIZE * 2, IMAGE_SIZE * 0: IMAGE_SIZE * 1] = preds[0, :, :, 8:11]
+    res_img[IMAGE_SIZE * 1: IMAGE_SIZE * 2, IMAGE_SIZE * 1: IMAGE_SIZE * 2] = preds[0, :, :, 11:14]
+    res_img[IMAGE_SIZE * 1: IMAGE_SIZE * 2, IMAGE_SIZE * 2: IMAGE_SIZE * 3, :2] = preds[0, :, :, 14:16]
 
     res_img = np.clip(res_img, -1, 1)
     res_img = ((res_img + 1) * 127.5).astype(np.uint8)
@@ -175,7 +175,7 @@ def use_warp_maps(origins, targets):
     trg_strength = tf.reverse(org_strength, axis=[0])
 
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-    video = cv2.VideoWriter(morph_dir, fourcc, fps, (ORIG_WIDTH, ORIG_HEIGHT))
+    video = cv2.VideoWriter(MORPH_DIRECTORY, fourcc, FPS, (ORIG_WIDTH, ORIG_HEIGHT))
 
     for iterations in tqdm(range(STEPS)):
         preds_org = preds * org_strength[iterations]
@@ -231,21 +231,19 @@ def driver(source, target):
     """
     dom_a = cv2.imread(source, cv2.IMREAD_COLOR)
     dom_b = cv2.imread(target, cv2.IMREAD_COLOR)
-    if dom_a.shape[1] != dom_b.shape[1] or dom_a.shape[0] != dom_b.shape[0]:
-        dom_a, dom_b = (dom_a, dom_b)
-    global ORIG_WIDTH, ORIG_HEIGHT
+    dom_a, dom_b = match_size(dom_a, dom_b)
     ORIG_WIDTH = dom_a.shape[1]
     ORIG_HEIGHT = dom_a.shape[0]
     dom_a = cv2.cvtColor(dom_a, cv2.COLOR_BGR2RGB)
-    dom_a = cv2.resize(dom_a, (im_sz, im_sz), interpolation=cv2.INTER_AREA)
+    dom_a = cv2.resize(dom_a, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
     dom_a = dom_a / 127.5 - 1
     dom_b = cv2.cvtColor(dom_b, cv2.COLOR_BGR2RGB)
-    dom_b = cv2.resize(dom_b, (im_sz, im_sz), interpolation=cv2.INTER_AREA)
+    dom_b = cv2.resize(dom_b, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
     dom_b = dom_b / 127.5 - 1
-    origins = dom_a.reshape(1, im_sz, im_sz, 3).astype(np.float32)
-    targets = dom_b.reshape(1, im_sz, im_sz, 3).astype(np.float32)
-    produce_warp_maps(origins, targets)
-    use_warp_maps(origins, targets)
+    origins = dom_a.reshape(1, IMAGE_SIZE, IMAGE_SIZE, 3).astype(np.float32)
+    targets = dom_b.reshape(1, IMAGE_SIZE, IMAGE_SIZE, 3).astype(np.float32)
+    produce_warp_maps(origins, targets, ORIG_WIDTH, ORIG_HEIGHT)
+    use_warp_maps(origins, targets, ORIG_WIDTH, ORIG_HEIGHT)
 
 
 def main():
@@ -269,21 +267,21 @@ def main():
         driver(start, end)
         filename = f"output/morph{i:03d}.mp4"
         filenames.append(filename)
-        move(morph_dir, filename)
-    if loop:
+        move(MORPH_DIRECTORY, filename)
+    if LOOP:
         driver(f"input/{image_list[-1]}", f"input/{image_list[0]}")
         filename = f"output/morph{len(image_list):03d}.mp4"
         filenames.append(filename)
-        move(morph_dir, filename)
-    combine_videos(filenames, "output/Final", fps, loop)
+        move(MORPH_DIRECTORY, filename)
+    combine_videos(filenames, "output/Final", FPS, LOOP)
 
 
 if __name__ == "__main__":
-    warp_scale = 0.075
-    mult_scale = 0.4
-    add_scale = 0.4
-    add_first = False
-    loop = True
-    fps = 60
-    steps = 120
+    WARP_SCALE = 0.075
+    MULT_SCALE = 0.4
+    ADD_SCALE = 0.4
+    ADD_FIRST = False
+    LOOP = True
+    FPS = 60
+    STEPS = 120
     main()
