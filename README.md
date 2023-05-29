@@ -24,6 +24,4 @@ A project coded by Benny Nottonson using Python, implements Tensorflow to create
 
 ## Usage/Examples
 
-Fill input with desired images
-Example output -
-https://user-images.githubusercontent.com/112336374/241809119-d6b64cbd-c974-4819-9a7a-48311c18ddeb.gif
+![](https://user-images.githubusercontent.com/112336374/241809119-d6b64cbd-c974-4819-9a7a-48311c18ddeb.gif)
