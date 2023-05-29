@@ -238,8 +238,8 @@ def driver(source, target):
     dom_a = cv2.imread(source, cv2.IMREAD_COLOR)
     dom_b = cv2.imread(target, cv2.IMREAD_COLOR)
     dom_a, dom_b = match_size(dom_a, dom_b)
-    ORIG_WIDTH = dom_a.shape[1]
-    ORIG_HEIGHT = dom_a.shape[0]
+    original_width = dom_a.shape[1]
+    original_height = dom_a.shape[0]
     dom_a = cv2.cvtColor(dom_a, cv2.COLOR_BGR2RGB)
     dom_a = cv2.resize(dom_a, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
     dom_a = dom_a / 127.5 - 1
@@ -248,8 +248,8 @@ def driver(source, target):
     dom_b = dom_b / 127.5 - 1
     origins = dom_a.reshape(1, IMAGE_SIZE, IMAGE_SIZE, 3).astype(np.float32)
     targets = dom_b.reshape(1, IMAGE_SIZE, IMAGE_SIZE, 3).astype(np.float32)
-    produce_warp_maps(origins, targets, ORIG_WIDTH, ORIG_HEIGHT)
-    use_warp_maps(origins, targets, ORIG_WIDTH, ORIG_HEIGHT)
+    produce_warp_maps(origins, targets, original_width, original_height)
+    use_warp_maps(origins, targets, original_width, original_height)
 
 
 def main():
