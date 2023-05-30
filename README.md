@@ -6,7 +6,7 @@ A project coded by Benny Nottonson using Python, implements Tensorflow to create
 
 ## Acknowledgements
 
- - [diffMorph](https://github.com/JustGlowing/minisom/blob/master/minisom.py](https://github.com/volotat/DiffMorph)
+ - [diffMorph](https://github.com/volotat/DiffMorph)
  - [Tensorflow](https://www.tensorflow.org)
 
 
