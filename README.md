@@ -24,4 +24,4 @@ A project coded by Benny Nottonson using Python, implements Tensorflow to create
 
 ## Usage/Examples
 
-![](https://user-images.githubusercontent.com/112336374/241809119-d6b64cbd-c974-4819-9a7a-48311c18ddeb.gif)
+![](https://user-images.githubusercontent.com/112336374/242127262-f172495f-45c2-4b8f-aff4-bef14d26a8b4.gif)
