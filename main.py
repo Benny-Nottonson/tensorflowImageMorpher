@@ -9,11 +9,12 @@ from tqdm import tqdm
 from model import MyModel
 from utils import dense_image_warp, combine_videos
 
-TRAIN_EPOCHS = 500
+TRAIN_EPOCHS = 100
 
 IMAGE_SIZE = 1024
 MORPH_DIRECTORY = "morph/morph.mp4"
 
+tf.keras.mixed_precision.set_global_policy("mixed_float16")
 
 @tf.function
 def warp(origins, targets, preds_org, preds_trg):
@@ -77,6 +78,7 @@ def produce_warp_maps(origins, targets, original_width, original_height):
     optimizer = tf.keras.optimizers.Adam(learning_rate=0.0002)
 
     train_loss = tf.keras.metrics.Mean(name="train_loss")
+    flow_scale = IMAGE_SIZE * WARP_SCALE
 
     @tf.function
     def train_step(training_maps, training_origins, training_targets):
@@ -95,8 +97,6 @@ def produce_warp_maps(origins, targets, original_width, original_height):
             res_targets_, res_origins_ = warp(
                 training_origins, training_targets, map_pred[..., :8], map_pred[..., 8:]
             )
-
-            flow_scale = IMAGE_SIZE * WARP_SCALE
             res_map = dense_image_warp(training_maps, map_pred[:, :, :, 6:8] * flow_scale)
             res_map = dense_image_warp(res_map, map_pred[:, :, :, 14:16] * flow_scale)
 
@@ -288,6 +288,6 @@ if __name__ == "__main__":
     ADD_SCALE = 0.4
     ADD_FIRST = False
     LOOP = True
-    FPS = 60
-    STEPS = 120
+    FPS = 144
+    STEPS = 72
     main()
